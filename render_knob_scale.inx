@@ -41,6 +41,18 @@
             <param name="start_value" type="float"   min="-10000" max="10000" precision="3" gui-text="Start Value">0</param>
             <param name="stop_value" type="float"   min="-10000" max="10000" precision="3" gui-text="Stop Value">10</param>
         </page>
+        <page name="title_settings" gui-text="Title">
+            <param name="draw_title" type="bool" gui-text="Draw title">false</param>
+            <param name="title" type="string" gui-text="Title"></param>
+            <param name="title_font" type="string" gui-text="Title font">sans-serif</param>
+            <param name="title_size" type="float" min="0.001" max="1000" precision="3" gui-text="Title size">10</param>
+            <param name="title_height_ratio" type="float" min="0.001" max="1" precision="3" gui-text="Title height ratio">1</param>
+            <param name="title_offset" type="float" min="0.001" max="1000" precision="3" gui-text="Title offset">1</param>
+            <param name="title_position" type="optiongroup" gui-text="Title position" appearance="combo">
+                <item value="top">Top</item>
+                <item value="bottom">Bottom</item>
+            </param>
+        </page>
     </param>
 
     <effect>

@@ -127,33 +127,72 @@ class Knob_Scale(inkex.Effect):
                         type=float,
                         dest="stop_value", default=10,
                         help="")
+        # Title settings
+        self.arg_parser.add_argument("--draw_title",
+                        type=inkex.Boolean,
+                        dest="draw_title", default='False',
+                        help="")
+        self.arg_parser.add_argument("--title",
+                        type=str,
+                        dest="title", default="",
+                        help="")
+        self.arg_parser.add_argument("--title_font",
+                        type=str,
+                        dest="title_font", default="sans-serif",
+                        help="")
+        self.arg_parser.add_argument("--title_size",
+                        type=float,
+                        dest="title_size", default=1,
+                        help="")
+        self.arg_parser.add_argument("--title_height_ratio",
+                        type=float,
+                        dest="title_height_ratio", default=1,
+                        help="")
+        self.arg_parser.add_argument("--title_offset",
+                        type=float,
+                        dest="title_offset", default=1,
+                        help="")
+        self.arg_parser.add_argument("--title_position",
+                        type=str,
+                        dest="title_position", default='top',
+                        help="")
         # Dummy
         self.arg_parser.add_argument("--tab")
 
-    def draw_text(self, textvalue, radius, angular_position, text_size, parent):
+    def draw_text(self, textvalue, x, y, text_font, text_size, height_ratio, parent, horizontal_alignment='center', vertical_alignment='middle'):
         # Create text element
         text = etree.Element(inkex.addNS('text','svg'))
         text.text = textvalue
 
-        # Set text position to center of document.
-        text.set('x', str(self.x_offset + radius*cos(angular_position)))
-        text.set('y', str(self.y_offset + radius*sin(angular_position) + text_size*self.options.text_height_ratio/2))
+        # Set text position according to alignments.
+        text.set('x', str(x))
+        if vertical_alignment == 'top':
+            y += text_size*height_ratio
+        elif vertical_alignment == 'middle':
+            y += text_size*height_ratio/2
+        text.set('y', str(y))
 
-        # Center text horizontally with CSS style.
+        # Set alignment with CSS style.
+        text_align = 'center'
+        text_anchor = 'middle'
+        if horizontal_alignment in ('left', 'start'):
+            text_align = start_anchor = 'start'
+        elif horizontal_alignment in ('right', 'end'):
+            text_align = start_anchor = 'end'
         style = {
-                'text-align' : 'center',
-                 'text-anchor': 'middle',
-                 'alignment-baseline' : 'central',
-                 'font-family': self.options.text_font,
-                 'font-size' : str(text_size),
-                 'vertical-align' : 'middle'
-                 }
+            'font-family': text_font,
+            'font-size': str(text_size),
+            'text-align': text_align,
+            'text-anchor': text_anchor,
+            'vertical-align': vertical_alignment,
+        }
 
         text.set('style', str(inkex.Style(style)))
         parent.append(text)
-    def draw_knob_arc(self, radius, parent, angle, transform='' ):
 
-        start_point_angle = (angle - pi)/2.0
+    def draw_knob_arc(self, radius, parent, transform='' ):
+
+        start_point_angle = (self.angle - pi)/2.0
         end_point_angle = pi - start_point_angle
 
         style = {   'stroke'        : '#000000',
@@ -237,17 +276,16 @@ class Knob_Scale(inkex.Effect):
         if n_ticks <= 0:
             return []
         
-        angle = radians(self.options.angle)
-        start_angle = 1.5*pi - 0.5*angle
+        start_angle = 1.5*pi - 0.5*self.angle
 
         if self.options.logarithmic_ticks:
             tick_angles = []
             for i in range(n_ticks):
-                tick_angle = start_angle + angle*log(i+1)/log(n_ticks)
+                tick_angle = start_angle + self.angle*log(i+1)/log(n_ticks)
                 tick_angles.append(tick_angle)
             return tick_angles
         else:
-            ticks_delta = angle / (n_ticks - 1)
+            ticks_delta = self.angle / (n_ticks - 1)
             return [start_angle + ticks_delta * i for i in range(n_ticks)]
 
     def get_tick_labels(self):
@@ -272,8 +310,7 @@ class Knob_Scale(inkex.Effect):
         
         n_ticks = self.options.n_ticks
         n_subticks = self.options.n_subticks
-        angle = radians(self.options.angle)
-        start_angle = 1.5*pi - 0.5*angle
+        start_angle = 1.5*pi - 0.5*self.angle
         
         subtick_angles = []
         tick_angles = self.get_tick_angles()
@@ -284,7 +321,7 @@ class Knob_Scale(inkex.Effect):
                 for i in range(n_subticks):
                     fraction = (i+1) / (n_subticks+1) + tick
                     fraction = log(fraction+1) / log(n_ticks)
-                    subtick_angles.append(start_angle + angle * fraction)
+                    subtick_angles.append(start_angle + self.angle * fraction)
             elif self.options.logarithmic_subticks:
                 for i in range(n_subticks):
                     fraction = log(i+2) / log(n_subticks+2)
@@ -301,10 +338,13 @@ class Knob_Scale(inkex.Effect):
         radius = self.svg.unittouu(str(self.options.radius) + self.options.units)
         self.x_offset = self.svg.unittouu(str(self.options.x) + self.options.units)
         self.y_offset = self.svg.unittouu(str(self.options.y) + self.options.units)
-        angle = self.options.angle*pi/180.0
+        self.angle = radians(self.options.angle)
         is_outer = True
+        title_bottom = True
         if self.options.style == 'marks_inwards':
             is_outer = False
+        if self.options.title_position == 'top':
+            title_bottom = False
 
         tick_length = self.svg.unittouu(str(self.options.ticksize) + self.options.units)
         subtick_length = self.svg.unittouu(str(self.options.subticksize) + self.options.units)
@@ -313,7 +353,10 @@ class Knob_Scale(inkex.Effect):
         # Labeling settings
         text_spacing = self.svg.unittouu(str(self.options.text_offset) + self.options.units)
         text_size = self.svg.unittouu(str(self.options.text_size) + self.options.units)
+        title_spacing = self.svg.unittouu(str(self.options.title_offset) + self.options.units)
+        title_size = self.svg.unittouu(str(self.options.title_size) + self.options.units)
 
+        external_radius = radius + tick_length
         if not is_outer:
             subtick_radius = radius + tick_length - subtick_length
             arc_radius = radius + tick_length
@@ -322,10 +365,10 @@ class Knob_Scale(inkex.Effect):
             arc_radius = radius
 
         if self.options.draw_arc:
-            self.draw_knob_arc(arc_radius, parent, angle)
+            self.draw_knob_arc(arc_radius, parent)
 
         if self.options.draw_centering_circle:
-            self.draw_centering_circle(arc_radius + tick_length + text_size + text_spacing, parent)
+            self.draw_centering_circle(arc_radius + tick_length + text_size + text_spacing + title_size + title_spacing, parent)
 
         # Draw main ticks        
         tick_angles = self.get_tick_angles()
@@ -339,8 +382,23 @@ class Knob_Scale(inkex.Effect):
         if self.options.labels_enabled:
             labels = self.get_tick_labels()
             label_radius = radius + tick_length + text_spacing
-            for angle, label in zip(tick_angles, labels):
-                self.draw_text(label, label_radius, angle, text_size, parent)
+            for ang, label in zip(tick_angles, labels):
+                x = self.x_offset + label_radius*cos(ang)
+                y = self.y_offset + label_radius*sin(ang)
+                self.draw_text(label, x, y, self.options.text_font, text_size, self.options.text_height_ratio, parent)
+
+        if self.options.draw_title:
+            if title_bottom:
+                bottom_point_angle = 1.5*pi - 0.5*self.angle
+                y = self.y_offset + external_radius*sin(bottom_point_angle) + title_spacing
+                vertical_alignment = 'top'
+            else:
+                y = self.y_offset - external_radius - title_spacing
+                if self.options.labels_enabled:
+                    # use top part of topmost label as the reference
+                    y -= text_spacing + text_size*self.options.text_height_ratio/2
+                vertical_alignment = 'bottom'
+            self.draw_text(self.options.title, self.x_offset, y, self.options.title_font, title_size, self.options.title_height_ratio, parent, vertical_alignment=vertical_alignment)
 
 
 if __name__ == '__main__':
