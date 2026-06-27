@@ -111,6 +111,10 @@ class Knob_Scale(inkex.Effect):
                         type=float,
                         dest="text_size", default=1,
                         help="")
+        self.arg_parser.add_argument("--text_height_ratio",
+                        type=float,
+                        dest="text_height_ratio", default=1,
+                        help="")
         self.arg_parser.add_argument("--text_offset",
                         type=float,
                         dest="text_offset", default=20,
@@ -133,7 +137,7 @@ class Knob_Scale(inkex.Effect):
 
         # Set text position to center of document.
         text.set('x', str(self.x_offset + radius*cos(angular_position)))
-        text.set('y', str(self.y_offset + radius*sin(angular_position) + text_size/2))
+        text.set('y', str(self.y_offset + radius*sin(angular_position) + text_size*self.options.text_height_ratio/2))
 
         # Center text horizontally with CSS style.
         style = {
