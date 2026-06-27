@@ -34,6 +34,7 @@
         <page name="labels_settings" gui-text="Labels">
             <param name="labels_enabled" type="bool" gui-text="Enable labels">false</param>
             <param name="rounding_level" type="int" min="0" max="100" gui-text="Rounding Float to">0</param>
+            <param name="text_font" type="string" gui-text="Labels font">sans-serif</param>
             <param name="text_size" type="float" min="0.001" max="1000" precision="3" gui-text="Labels size">10</param>
             <param name="text_offset" type="float" min="-1000" max="1000" precision="3" gui-text="Offset">20</param>
             <param name="start_value" type="float"   min="-10000" max="10000" precision="3" gui-text="Start Value">0</param>

@@ -103,6 +103,10 @@ class Knob_Scale(inkex.Effect):
                         type=int,
                         dest="rounding_level", default=0,
                         help="")
+        self.arg_parser.add_argument("--text_font",
+                        type=str,
+                        dest="text_font", default="sans-serif",
+                        help="")
         self.arg_parser.add_argument("--text_size",
                         type=float,
                         dest="text_size", default=1,
@@ -136,6 +140,7 @@ class Knob_Scale(inkex.Effect):
                 'text-align' : 'center',
                  'text-anchor': 'middle',
                  'alignment-baseline' : 'central',
+                 'font-family': self.options.text_font,
                  'font-size' : str(text_size),
                  'vertical-align' : 'middle'
                  }
