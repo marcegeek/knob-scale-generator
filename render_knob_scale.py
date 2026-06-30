@@ -127,6 +127,18 @@ class Knob_Scale(inkex.Effect):
                         type=float,
                         dest="stop_value", default=10,
                         help="")
+        self.arg_parser.add_argument("--smart_positioning",
+                        type=inkex.Boolean,
+                        dest="smart_positioning", default='False',
+                        help="")
+        self.arg_parser.add_argument("--left_offset_ratio",
+                        type=float,
+                        dest="left_offset_ratio", default=0,
+                        help="")
+        self.arg_parser.add_argument("--right_offset_ratio",
+                        type=float,
+                        dest="right_offset_ratio", default=0,
+                        help="")
         # Title settings
         self.arg_parser.add_argument("--draw_title",
                         type=inkex.Boolean,
@@ -176,9 +188,9 @@ class Knob_Scale(inkex.Effect):
         text_align = 'center'
         text_anchor = 'middle'
         if horizontal_alignment in ('left', 'start'):
-            text_align = start_anchor = 'start'
+            text_align = text_anchor = 'start'
         elif horizontal_alignment in ('right', 'end'):
-            text_align = start_anchor = 'end'
+            text_align = text_anchor = 'end'
         style = {
             'font-family': text_font,
             'font-size': str(text_size),
@@ -332,6 +344,27 @@ class Knob_Scale(inkex.Effect):
                     subtick_angles.append(cur_tick_angle + tick_delta * fraction)
         return subtick_angles
 
+    @staticmethod
+    def angle_diff(a1, a2):
+        while a1 > 2*pi:
+            a1 -= 2*pi
+        while a2 > 2*pi:
+            a2 -= 2*pi
+        diff = abs(a1 - a2)
+        if diff > pi:
+            diff = 2*pi - diff
+        return diff
+
+    def norm_angle(self, angle, ref_angles):
+        min_diff = float('inf')
+        found = None
+        for ref in ref_angles:
+            diff = self.angle_diff(angle, ref)
+            if diff < min_diff:
+                min_diff = diff
+                found = ref
+        return found
+
     def effect(self):
 
         parent = self.svg.get_current_layer()
@@ -380,12 +413,48 @@ class Knob_Scale(inkex.Effect):
             self.draw_tick(subtick_radius, subtick_angle, subtick_length, parent)
 
         if self.options.labels_enabled:
+            ref_angles = [i * pi/4.0 for i in range(8)]
             labels = self.get_tick_labels()
             label_radius = radius + tick_length + text_spacing
             for ang, label in zip(tick_angles, labels):
                 x = self.x_offset + label_radius*cos(ang)
                 y = self.y_offset + label_radius*sin(ang)
-                self.draw_text(label, x, y, self.options.text_font, text_size, self.options.text_height_ratio, parent)
+                if not self.options.smart_positioning:
+                    self.draw_text(label, x, y, self.options.text_font, text_size, self.options.text_height_ratio, parent)
+                else:
+                    the_angle = self.norm_angle(ang, ref_angles)
+                    horizontal = 'center'
+                    vertical = 'middle'
+                    if the_angle == 0:
+                        horizontal = 'left'
+                        vertical = 'middle'
+                    elif the_angle == 0.25*pi:
+                        vertical = 'top'
+                        horizontal = 'left'
+                    elif the_angle == 0.5*pi:
+                        vertical = 'top'
+                        horizontal = 'center'
+                    elif the_angle == 0.75*pi:
+                        vertical = 'top'
+                        horizontal = 'right'
+                    elif the_angle == pi:
+                        vertical = 'middle'
+                        horizontal = 'right'
+                    elif the_angle == 1.25*pi:
+                        vertical = 'bottom'
+                        horizontal = 'right'
+                    elif the_angle == 1.5*pi:
+                        vertical = 'bottom'
+                        horizontal = 'center'
+                    elif the_angle == 1.75*pi:
+                        vertical = 'bottom'
+                        horizontal = 'left'
+
+                    if horizontal == 'left':
+                        x -= text_size*self.options.left_offset_ratio
+                    elif horizontal == 'right':
+                        x += text_size*self.options.right_offset_ratio
+                    self.draw_text(label, x, y, self.options.text_font, text_size, self.options.text_height_ratio, parent, horizontal_alignment=horizontal, vertical_alignment=vertical)
 
         if self.options.draw_title:
             if title_bottom:
